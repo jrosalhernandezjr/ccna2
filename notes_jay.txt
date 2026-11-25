@@ -1,0 +1,205 @@
+
+
+1. Design a network for 64 computers using the address space 192.168.53.128/25.
+The first network is unusable.
+
+C: 7b
+S: /25
+I: 4th, 128i
+
+Network: 192.168.54.0/25
+1st valid: 192.168.54.1
+Last valid: 192.168.54.126
+Broadcast: 192.168.54.127
+
+Not Network: 192.168.54.128/?
+
+STATIC ROUTE
+
+RECIPE:
+show ip [destination] [MASK] [Exit-Interfce / Next-hop] 
+
+
+===================================================================
+TASK 1: Configure a static host route from R1 destined to 10.1.1.5
+
+!@R1
+conf t
+ ip route 10.1.1.5 255.255.255.255 10.1.1.2
+ end
+ 
+TASK 2: Configure a static host route from R1 destined to 10.1.1.6
+
+!@R1
+conf t
+ ip route 10.1.1.6 255.255.255.255 10.1.1.2
+ end
+ 
+TASK 3: Configure Return Traffic
+Configure a Static Network Route from R3 destined for R1 10.1.1.1
+
+!@R3
+conf t
+ ip route 10.1.1.0 255.255.255.252 10.1.1.5
+ end
+ 
+TASK 4: Configure a Static Network Route from R1 destined for R4 10.1.1.10
+!@R1
+conf t
+ ip route 10.1.1.8 255.255.255.252 10.1.1.2
+ end
+ 
+!@R4
+conf t
+ ip route 10.1.1.0 255.255.255.252 10.1.1.9
+ end
+ 
+!@R2
+conf t
+ ip route 10.1.1.8 255.255.255.252 10.1.1.6
+ end
+
+===================================================================
+
+!@CoreTAAS
+conf t
+ ip routing
+ int fa0/9
+	no sw
+	no shut
+	ip add 192.168.56.60 255.255.255.192
+	end
+	
+!@CoreBABA
+conf t
+ ip routing
+ int fa0/9
+	no sw
+	no shut
+	ip add 192.168.56.65 255.255.255.192
+	end
+
+====================================================================
+
+###PATH SELECION RULES
+1. Longest prefix match
+2. Lowest Admin Distance
+3. Lowest Metric
+
+Admin distance
+Connected = C = 0
+Static  = S = 1
+EIGRP = D = 90
+RIP = R = 120
+OSPF = O = 110
+ISIS = IS = 115
+iBGP = B = 200
+eBGP = B = 20
+
+Metric
+10.5.20.0/25 [110/10]
+10 --> metric
+
+
+====================================================================
+
+###Dynamic Routing
+IGP
+- Distance Vector
+	- EIGRP
+	- RIPv2
+- Link-state
+	- OSPF
+	- IS-IS
+EGP
+- BGP
+
+
+Configuring Dynamic Routing Protocol
+Step 1. Find the directly connected networks
+
+C1:
+VLAN 10   : 10.2.1.0/24
+VLAN 20   : 10.2.2.0/24
+VLAN 100  : 192.168.1.128/27
+          : 10.1.4.4/30
+		  
+C2:
+VLAN 10   : 10.2.1.0/24
+VLAN 20   : 10.2.2.0/24
+VLAN 100  : 192.168.1.128/27
+E1/1      : 10.1.4.8/30
+		  
+		  
+EIGRP
+!@C1
+conf t
+ router eigrp 100
+  network 10.2.1.0 0.0.0.255
+  network 10.2.2.0 0.0.0.255
+  network 192.168.1.128 0.0.0.31
+  network 10.1.4.4 0.0.0.3
+  end
+  
+!@C2
+conf t
+ router eigrp 100
+  network 10.2.1.0 0.0.0.255
+  network 10.2.2.0 0.0.0.255
+  network 192.168.1.128 0.0.0.31
+  network 10.1.4.8 0.0.0.3
+  end
+ show ip eigrp neighbor
+ 
+ ====================================================================
+ 
+TASK:
+Configure E2 & R1 for EIGRP AS 100
+
+Step 1: Find the network connected to the configuring device
+2. Fine the network address
+3. Determine the wildcard
+
+!@R2
+conf t
+ router eigrp 100
+  network 10.46.187.22 0.0.0.0
+  network 192.168.0.152 0.0.0.3
+  network 10.0.15.64 0.0.0.31
+  end
+  
+!@R1
+conf t
+ router eigrp 100
+  network 172.16.97.111 0.0.0.0
+  network 172.16.160.0 0.0.7.255
+  network 10.0.15.64 0.0.0.31
+  end
+  
+  
+!Edge
+conf t
+ int g0/0/0
+  ip nat inside
+ exit
+ int g0/0/1
+  ip nat outside
+ exit
+  
+  
+!@P2
+conf t
+ ip route 0.0.0.0 0.0.0.0 10.2.1.1
+ end
+ping 8.8.8.8
+
+!@P2
+conf t
+ ip route 0.0.0.0 0.0.0.0 10.2.1.1
+ end
+ping 8.8.8.8
+  
+  
+ 
+  
+ 
